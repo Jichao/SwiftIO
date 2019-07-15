@@ -15,12 +15,12 @@ public extension Socket {
     func getsockopt <T>(_ level: Int32, _ name: Int32) throws -> T {
 
         guard try getsockoptsize(level, name) == MemoryLayout<T>.size else {
-            fatalError("Expected size of \(T.self) \(MemoryLayout<T>.size) doesn't match what getsocktopt expects: \(try? getsockoptsize(level, name))")
+            fatalError("Expected size of \(T.self) \(MemoryLayout<T>.size) doesn't match what getsocktopt expects: \(String(describing: try? getsockoptsize(level, name)))")
         }
 
         let ptr = UnsafeMutablePointer <T>.allocate(capacity: 1)
         defer {
-            ptr.deallocate(capacity: 1)
+            ptr.deallocate()
         }
         var length = socklen_t(MemoryLayout<T>.size)
         let result = Darwin.getsockopt(descriptor, level, name, ptr, &length)
@@ -34,7 +34,7 @@ public extension Socket {
     func setsockopt <T>(_ level: Int32, _ name: Int32, _ value: T) throws {
 
         guard try getsockoptsize(level, name) == MemoryLayout<T>.size else {
-            fatalError("Expected size of \(T.self) \(MemoryLayout<T>.size) doesn't match what getsocktopt expects: \(try? getsockoptsize(level, name))")
+            fatalError("Expected size of \(T.self) \(MemoryLayout<T>.size) doesn't match what getsocktopt expects: \(String(describing: try? getsockoptsize(level, name)))")
         }
 
         var value = value

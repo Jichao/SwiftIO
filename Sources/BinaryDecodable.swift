@@ -129,13 +129,13 @@ extension UInt64: BinaryDecodable {
 extension Float: BinaryDecodable {
     public static func decode(_ buffer: UnsafeBufferPointer <UInt8>, endianness: Endianness) throws -> Float {
         let value: UInt32 = try SwiftIO.decode(buffer)
-        return unsafeBitCast(value.fromEndianness(endianness), to: Float.self)
+        return Float(bitPattern: value.fromEndianness(endianness))
     }
 }
 
 extension Double: BinaryDecodable {
     public static func decode(_ buffer: UnsafeBufferPointer <UInt8>, endianness: Endianness) throws -> Double {
         let value: UInt64 = try SwiftIO.decode(buffer)
-        return unsafeBitCast(value.fromEndianness(endianness), to: Double.self)
+        return Double(bitPattern: value.fromEndianness(endianness))
     }
 }

@@ -93,9 +93,8 @@ public func == (lhs: Address, rhs: Address) -> Bool {
 // MARK: Hashable
 
 extension Address: Hashable {
-    public var hashValue: Int {
-        // TODO: cheating
-        return description.hashValue
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(description.hashValue)
     }
 }
 

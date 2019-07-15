@@ -52,7 +52,7 @@ public class TCPChannel: Connectable {
     }
 
     /// Return true from shouldReconnect to initiate a reconnect. Does not make sense on a server socket.
-    public var shouldReconnect: ((Void) -> Bool)? {
+    public var shouldReconnect: (() -> Bool)? {
         willSet {
             preconditionConnected()
         }
@@ -114,7 +114,7 @@ public class TCPChannel: Connectable {
                 strong_self.state.value = .connected
                 strong_self.createStream()
                 log?.debug("\(strong_self): Connection success.")
-                callback(.success())
+                callback(.success(()))
             }
             catch let error {
                 strong_self.state.value = .disconnected
@@ -155,7 +155,7 @@ public class TCPChannel: Connectable {
                 callback(Result.failure(Errno(rawValue: error)!))
                 return
             }
-            callback(Result.success())
+            callback(Result.success(()))
         }
     }
 
@@ -220,7 +220,7 @@ public class TCPChannel: Connectable {
             if reconnectFlag == true {
                 let time = DispatchTime.now() + Double(Int64(reconnectionDelay * 1000000000)) / Double(NSEC_PER_SEC)
                 queue.asyncAfter(deadline: time) {
-                    [weak self] (result) in
+                    [weak self] in
 
                     guard let strong_self = self else {
                         return
@@ -232,7 +232,7 @@ public class TCPChannel: Connectable {
             }
         }
 
-        disconnectCallback?(Result.success())
+        disconnectCallback?(Result.success(()))
         disconnectCallback = nil
     }
 
@@ -279,15 +279,15 @@ extension TCPChannel {
 
 extension TCPChannel: CustomStringConvertible {
     public var description: String {
-        return "TCPChannel(label: \(label), address: \(address)), state: \(state.value))"
+        return "TCPChannel(label: \(String(describing: label)), address: \(address)), state: \(state.value))"
     }
 }
 
 // MARK: -
 
 extension TCPChannel: Hashable {
-    public var hashValue: Int {
-        return ObjectIdentifier(self).hashValue
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self).hashValue)
     }
 }
 

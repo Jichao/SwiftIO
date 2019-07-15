@@ -131,8 +131,9 @@ public extension Socket {
 
     func accept() throws -> (Socket, Address) {
         precondition(type == SOCK_STREAM, "\(#function) should only be used on `SOCK_STREAM` sockets")
-        var addr = sockaddr_storage()
-        return try addr.withMutableSockaddr() {
+        let addr = sockaddr_storage()
+        var localAddr = addr
+        return try localAddr.withMutableSockaddr() {
             var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
             let socket = Darwin.accept(descriptor, $0, &length)
             if socket < 0 {
@@ -146,8 +147,9 @@ public extension Socket {
 
     func getAddress() throws -> Address {
         // TODO: all this with with with stuff can be replaced by a new with_sockaddr on sockaddr_storage!
-        var addr = sockaddr_storage()
-        return try addr.withMutableSockaddr() {
+        let addr = sockaddr_storage()
+        var localAddr = addr
+        return try localAddr.withMutableSockaddr() {
             var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
             let status = getsockname(descriptor, $0, &length)
             if status != 0 {
@@ -158,8 +160,9 @@ public extension Socket {
     }
 
     func getPeer() throws -> Address {
-        var addr = sockaddr_storage()
-        return try addr.withMutableSockaddr() {
+        let addr = sockaddr_storage()
+        var localAddr = addr
+        return try localAddr.withMutableSockaddr() {
             var length = socklen_t(MemoryLayout<sockaddr_storage>.size)
             let status = getpeername(descriptor, $0, &length)
             if status != 0 {

@@ -11,7 +11,7 @@ import Darwin
 public extension Address {
     static func addressesForInterfaces() throws -> [String: [Address]] {
         let addressesForInterfaces = getAddressesForInterfaces() as! [String: [Data]]
-        let pairs: [(String, [Address])] = addressesForInterfaces.flatMap() {
+        let pairs: [(String, [Address])] = addressesForInterfaces.compactMap() {
             (interface, addressData) -> (String, [Address])? in
 
             if addressData.count == 0 {

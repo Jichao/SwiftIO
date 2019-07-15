@@ -88,14 +88,14 @@ extension UInt64: BinaryOutputStreamable {
 
 extension Float: BinaryOutputStreamable {
     public func writeTo(stream: BinaryOutputStream) throws {
-        let bitValue = unsafeBitCast(self, to: UInt32.self)
-        try write(stream: stream, value: bitValue)
+        let bitValue = self.bitPattern
+        try SwiftIO.write(stream: stream, value: bitValue)
     }
 }
 
 extension Double: BinaryOutputStreamable {
     public func writeTo(stream: BinaryOutputStream) throws {
-        let bitValue = unsafeBitCast(self, to: UInt64.self)
-        try write(stream: stream, value: bitValue)
+        let bitValue = self.bitPattern
+        try SwiftIO.write(stream: stream, value: bitValue)
     }
 }

@@ -93,7 +93,7 @@ public class UDPChannel {
 
         configureSocket?(socket)
 
-        source = DispatchSource.makeReadSource(fileDescriptor: socket.descriptor, queue: receiveQueue) /*Migrator FIXME: Use DispatchSourceRead to avoid the cast*/ as! DispatchSource
+        source = (DispatchSource.makeReadSource(fileDescriptor: socket.descriptor, queue: receiveQueue) /*Migrator FIXME: Use DispatchSourceRead to avoid the cast*/ as! DispatchSource)
         guard source != nil else {
             cleanup()
             throw Error.generic("dispatch_source_create() failed")
@@ -180,7 +180,7 @@ public class UDPChannel {
                 callback(.failure(error))
                 return
             }
-            callback(.success())
+            callback(.success(()))
         }
     }
 
@@ -194,7 +194,7 @@ public class UDPChannel {
                 writeHandler(.failure(error))
                 return
             }
-            writeHandler(.success())
+            writeHandler(.success(()))
         }
     }
 }
@@ -217,11 +217,12 @@ private extension UDPChannel {
 
         var readBuffer = Data(count: 4096)
         var socketAddrBuffer = Data(count: Int(SOCK_MAXADDRLEN))
-
-        try readBuffer.withUnsafeMutableBytes() {
+        var localReadBuffer = readBuffer
+        var localSocketAddrBuffer = socketAddrBuffer
+        try localReadBuffer.withUnsafeMutableBytes() {
             (readBufferPointer: UnsafeMutablePointer <UInt8>) in
 
-            try socketAddrBuffer.withUnsafeMutableBytes() {
+            try localSocketAddrBuffer.withUnsafeMutableBytes() {
                 (socketBufferPointer: UnsafeMutablePointer <sockaddr>) in
 
                 var socketlen = socklen_t(socketAddrBuffer.count)
@@ -266,7 +267,7 @@ private extension UDPChannel {
 // MARK: -
 
 public extension UDPChannel {
-    public func send(_ data: Data, address: Address? = nil, callback: @escaping (Result <Void>) -> Void) {
+    func send(_ data: Data, address: Address? = nil, callback: @escaping (Result <Void>) -> Void) {
         let data = DispatchData(data: data)
         send(data, address: address ?? self.address, callback: callback)
     }

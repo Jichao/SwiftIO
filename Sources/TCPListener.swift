@@ -46,7 +46,7 @@ public class TCPListener {
         try listeningSocket.setNonBlocking(true)
         try listeningSocket.listen()
 
-        source = DispatchSource.makeReadSource(fileDescriptor: listeningSocket.descriptor, queue: queue) /*Migrator FIXME: Use DispatchSourceRead to avoid the cast*/ as! DispatchSource
+        source = (DispatchSource.makeReadSource(fileDescriptor: listeningSocket.descriptor, queue: queue) /*Migrator FIXME: Use DispatchSourceRead to avoid the cast*/ as! DispatchSource)
         source.setEventHandler {
             [weak self] in
 
