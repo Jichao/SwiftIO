@@ -10,10 +10,6 @@ import Cocoa
 
 class SwitchControl: NSControl {
 
-    override class func initialize() {
-        exposeBinding("on")
-    }
-
     var on: Bool = false {
         didSet {
             if oldValue == on {
@@ -29,7 +25,7 @@ class SwitchControl: NSControl {
     var offColor = NSColor.controlShadowColor
     var onColor = NSColor.keyboardFocusIndicatorColor
 
-    fileprivate var update: ((Void) -> Void)!
+    fileprivate var update: (() -> Void)!
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
@@ -167,7 +163,7 @@ class SwitchControl: NSControl {
     }
 
 
-    func click(_ gestureRecognizer: NSClickGestureRecognizer) {
+    @objc func click(_ gestureRecognizer: NSClickGestureRecognizer) {
         on = !on
     }
 

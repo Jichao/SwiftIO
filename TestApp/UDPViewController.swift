@@ -15,9 +15,9 @@ import SwiftUtilities
 
 class UDPViewController: NSViewController {
 
-    dynamic var listenerAddressString: String? = "localhost:9999"
-    dynamic var echoAddress: String? = "localhost:9999"
-    dynamic var echoBody: String? = "Hello world"
+    @objc dynamic var listenerAddressString: String? = "0.0.0.0:14550"
+    @objc dynamic var echoAddress: String? = "localhost:9999"
+    @objc dynamic var echoBody: String? = "Hello world"
 
     var listener: UDPChannel? = nil
 

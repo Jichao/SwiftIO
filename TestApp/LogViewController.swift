@@ -12,7 +12,7 @@ import SwiftIO
 
 class LogViewController: NSViewController {
 
-    dynamic var logText: String = ""
+    @objc dynamic var logText: String = ""
     @IBOutlet var logTextView: NSTextView!
 
     override func viewDidLoad() {

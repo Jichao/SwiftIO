@@ -18,9 +18,9 @@ class TCPServerViewController: NSViewController {
     let port: UInt16 = 8888
     var server: TCPServer?
 
-    dynamic var serving: Bool = false
+    @objc dynamic var serving: Bool = false
 
-    dynamic var addressString: String? = "0.0.0.0:8888"
+    @objc dynamic var addressString: String? = "0.0.0.0:8888"
 
 }
 

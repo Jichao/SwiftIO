@@ -16,10 +16,10 @@ class TCPClientViewController: NSViewController {
     var clientChannel: TCPChannel?
     var count: Int = 0
 
-    dynamic var address: String? = "localhost:8888"
-    dynamic var reconnect: Bool = false
-    dynamic var state: String? = nil
-    dynamic var connected: Bool = false
+    @objc dynamic var address: String? = "localhost:8888"
+    @objc dynamic var reconnect: Bool = false
+    @objc dynamic var state: String? = nil
+    @objc dynamic var connected: Bool = false
 
     override func viewDidLoad() {
         super.viewDidLoad()

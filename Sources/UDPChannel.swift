@@ -216,27 +216,31 @@ private extension UDPChannel {
         // TODO: Swift3 - now way too many allocs and copies in this code. Need to work to get it back to Swift 2's levels.
 
         var readBuffer = Data(count: 4096)
+        var readBufferCount = readBuffer.count
         var socketAddrBuffer = Data(count: Int(SOCK_MAXADDRLEN))
-        var localReadBuffer = readBuffer
-        var localSocketAddrBuffer = socketAddrBuffer
-        try localReadBuffer.withUnsafeMutableBytes() {
+        var socketAddrBufferCount = socketAddrBuffer.count
+        
+        try readBuffer.withUnsafeMutableBytes() {
             (readBufferPointer: UnsafeMutablePointer <UInt8>) in
-
-            try localSocketAddrBuffer.withUnsafeMutableBytes() {
+            
+            try socketAddrBuffer.withUnsafeMutableBytes() {
                 (socketBufferPointer: UnsafeMutablePointer <sockaddr>) in
-
-                var socketlen = socklen_t(socketAddrBuffer.count)
-                let result = recvfrom(socket.descriptor, readBufferPointer, readBuffer.count, 0, socketBufferPointer, &socketlen)
+                
+                var socketlen = socklen_t(socketAddrBufferCount)
+                let result = recvfrom(socket.descriptor, readBufferPointer, readBufferCount, 0, socketBufferPointer, &socketlen)
                 guard result >= 0 else {
                     let error: Swift.Error = Errno(rawValue: Int32(result)) ?? Error.unknown
                     errorHandler?(error)
                     throw error
                 }
-                readBuffer.count = result
-                socketAddrBuffer.count = max(Int(socketlen), MemoryLayout<sockaddr_storage>.size)
+                readBufferCount = result
+                socketAddrBufferCount = max(Int(socketlen), MemoryLayout<sockaddr_storage>.size)
             }
         }
-
+        
+        readBuffer.count = readBufferCount
+        socketAddrBuffer.count = socketAddrBufferCount
+        
         let address = socketAddrBuffer.withUnsafeBytes() {
             (pointer: UnsafePointer <sockaddr_storage>) in
             return Address(sockaddr: pointer.pointee)
