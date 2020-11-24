@@ -1,8 +1,9 @@
+// swift-tools-version:5.3
 import PackageDescription
 
 let package = Package(
     name: "SwiftIO",
     dependencies: [
-        .Package(url: "https://github.com/schwa/SwiftUtilities.git", majorVersion: 0),
+        .package(url: "https://github.com/Esri/SwiftUtilities.git", .branch("develop"))
     ]
 )

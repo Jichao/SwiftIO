@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "SwiftUtilities",
+        "repositoryURL": "https://github.com/Esri/SwiftUtilities",
+        "state": {
+          "branch": "develop",
+          "revision": "59510d708eb1bbfc5d4a29f96e60a77a3306047b",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
