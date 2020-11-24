@@ -1,8 +1,8 @@
 //
-//  RandomAccess.swift
+//  BinaryStreams.swift
 //  SwiftIO
 //
-//  Created by Jonathan Wight on 8/11/15.
+//  Created by Jonathan Wight on 6/25/15.
 //
 //  Copyright (c) 2014, Jonathan Wight
 //  All rights reserved.
@@ -28,24 +28,24 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import SwiftUtilities
+import Foundation
 
-public enum Whence: Int {
-    case set = 0
-    case current = 1
-    case end = 2
+public protocol BinaryInputStream {
+    var endianness: Endianness { get }
+    // TODO: change lenght to Count
+    func readData(count: Int) throws -> DispatchData
+    func readData() throws -> DispatchData 
 }
 
-public protocol RandomAccess {
-    func tell() throws -> Int
-    func seek(offset: Int, whence: Whence) throws
+// MARK: -
+
+public protocol BinaryInputStreamable {
+    static func readFrom(_ stream: BinaryInputStream) throws -> Self
 }
 
-public protocol RandomAccessInput: RandomAccess {
-    func read(offset: Int, count: Int) throws -> DispatchData
-}
-
-public protocol RandomAccessOutput: RandomAccess {
-    func write(offset: Int, buffer: UnsafeBufferPointer <UInt8>) throws
+public extension BinaryInputStream {
+    func read <T: BinaryInputStreamable> () throws -> T {
+        return try T.readFrom(self)
+    }
 }

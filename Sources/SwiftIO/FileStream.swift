@@ -29,6 +29,7 @@
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import SwiftUtilities
+import Foundation
 
 public struct Mode: OptionSet {
     public let rawValue: Int

@@ -1,8 +1,8 @@
 //
-//  Datagram.swift
+//  MemoryStream.swift
 //  SwiftIO
 //
-//  Created by Jonathan Wight on 8/9/15.
+//  Created by Jonathan Wight on 6/25/15.
 //
 //  Copyright (c) 2014, Jonathan Wight
 //  All rights reserved.
@@ -28,45 +28,52 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import SwiftUtilities
+import Foundation
 
-public struct Datagram {
-    public let from: Address
-    public let timestamp: Timestamp
-    public let data: DispatchData 
+public class MemoryStream: BinaryInputStream, BinaryOutputStream {
 
-    public init(from: Address, timestamp: Timestamp = Timestamp(), data: DispatchData ) {
-        self.from = from
-        self.timestamp = timestamp
+    public var endianness = Endianness.Native
+    public var data: DispatchData
+
+    var head: Int = 0
+
+    public init() {
+        self.data = DispatchData()
+    }
+
+    public init(data: DispatchData) {
         self.data = data
     }
+
+    public func readData(count: Int) throws -> DispatchData {
+        let result = data.subdata(in: head..<(head + count))
+        head += count
+        return result
+    }
+
+    public func readData() throws -> DispatchData {
+        let result = data.subdata(in: head..<(data.count - head))
+        head = data.count
+        return result
+    }
+
+    public func write(buffer: UnsafeBufferPointer <UInt8>) throws {
+        let newData = DispatchData(bytes: buffer)
+        data = data + newData
+    }
+
+    public func rewind() {
+        head = 0
+    }
 }
 
 // MARK: -
 
-extension Datagram: Equatable {
-}
+extension MemoryStream: CustomStringConvertible {
 
-public func == (lhs: Datagram, rhs: Datagram) -> Bool {
-
-    if lhs.from != rhs.from {
-        return false
-    }
-    if lhs.timestamp != rhs.timestamp {
-        return false
-    }
-    if lhs.data != rhs.data {
-        return false
-    }
-
-    return true
-}
-
-// MARK: -
-
-extension Datagram: CustomStringConvertible {
     public var description: String {
-        return "Datagram(from: \(from), timestamp: \(timestamp): data: \(data.count) bytes)"
+        return "MemoryStream(endianess: \(endianness), length: \(data.count))"
     }
+
 }

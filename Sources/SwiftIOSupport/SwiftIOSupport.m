@@ -67,14 +67,14 @@ int setNonblocking(int socket, BOOL flag) {
     return fcntl(socket, F_SETFL, flags);
 }
 
-void fdZero(fd_set* fdSet) {
+extern void fdZero(fd_set* fdSet) {
     FD_ZERO(fdSet);
 }
 
-void fdSet(int fd, fd_set* fdset) {
+extern void fdSet(int fd, fd_set* fdset) {
     FD_SET(fd, fdset);
 }
 
-int fdIsSet(int fd, fd_set* fdset) {
+extern int fdIsSet(int fd, fd_set* fdset) {
     return FD_ISSET(fd, fdset);
 }

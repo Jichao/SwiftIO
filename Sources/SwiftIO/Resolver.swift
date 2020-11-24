@@ -7,6 +7,7 @@
 //
 
 import SwiftUtilities
+import Foundation
 
 class Resolver {
 

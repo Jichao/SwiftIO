@@ -1,8 +1,8 @@
 //
-//  BinaryStreams.swift
+//  Datagram.swift
 //  SwiftIO
 //
-//  Created by Jonathan Wight on 6/25/15.
+//  Created by Jonathan Wight on 8/9/15.
 //
 //  Copyright (c) 2014, Jonathan Wight
 //  All rights reserved.
@@ -28,23 +28,46 @@
 //  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import SwiftUtilities
 
-public protocol BinaryInputStream {
-    var endianness: Endianness { get }
-    // TODO: change lenght to Count
-    func readData(count: Int) throws -> DispatchData
-    func readData() throws -> DispatchData 
+import SwiftUtilities
+import Foundation
+
+public struct Datagram {
+    public let from: Address
+    public let timestamp: Timestamp
+    public let data: DispatchData 
+
+    public init(from: Address, timestamp: Timestamp = Timestamp(), data: DispatchData ) {
+        self.from = from
+        self.timestamp = timestamp
+        self.data = data
+    }
 }
 
 // MARK: -
 
-public protocol BinaryInputStreamable {
-    static func readFrom(_ stream: BinaryInputStream) throws -> Self
+extension Datagram: Equatable {
 }
 
-public extension BinaryInputStream {
-    func read <T: BinaryInputStreamable> () throws -> T {
-        return try T.readFrom(self)
+public func == (lhs: Datagram, rhs: Datagram) -> Bool {
+
+    if lhs.from != rhs.from {
+        return false
+    }
+    if lhs.timestamp != rhs.timestamp {
+        return false
+    }
+    if lhs.data != rhs.data {
+        return false
+    }
+
+    return true
+}
+
+// MARK: -
+
+extension Datagram: CustomStringConvertible {
+    public var description: String {
+        return "Datagram(from: \(from), timestamp: \(timestamp): data: \(data.count) bytes)"
     }
 }

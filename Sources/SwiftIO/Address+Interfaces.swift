@@ -7,6 +7,8 @@
 //
 
 import Darwin
+import Foundation
+import SwiftIOSupport
 
 public extension Address {
     static func addressesForInterfaces() throws -> [String: [Address]] {

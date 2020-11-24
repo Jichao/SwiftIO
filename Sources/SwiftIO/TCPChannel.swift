@@ -30,7 +30,7 @@
 
 import Darwin
 import Dispatch
-
+import Foundation
 import SwiftUtilities
 
 public class TCPChannel: Connectable {

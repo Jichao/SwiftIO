@@ -7,7 +7,7 @@
 //
 
 import Darwin
-
+import Foundation
 import SwiftUtilities
 
 public extension Socket {

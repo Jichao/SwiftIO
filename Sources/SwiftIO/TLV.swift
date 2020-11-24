@@ -9,6 +9,7 @@
 // MARK: -
 
 import SwiftUtilities
+import Foundation
 
 public typealias TLVType = BinaryStreamable & Equatable & EndianConvertable
 public typealias TLVlength = BinaryStreamable & UnsignedInteger & EndianConvertable

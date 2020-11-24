@@ -6,10 +6,16 @@
 //  Copyright © 2015 schwa.io. All rights reserved.
 //
 
-#ifndef SwiftIOSupport_h
-#define SwiftIOSupport_h
+//#ifndef SwiftIOSupport_h
+//#define SwiftIOSupport_h
 
 // Generally contains code that cannot be represented as pure Swift for whatever reasons.
+#import <Foundation/Foundation.h>
+@interface UrlConnection : NSObject
+@property NSString *url;
+- (void)connect;
++ (BOOL)canHandleRequest:(NSString *)type forUrl:(NSString *)url;
+@end
 
 extern NSDictionary *getAddressesForInterfaces();
 extern int setNonblocking(int socket, BOOL flag);
@@ -17,4 +23,4 @@ extern void fdZero(fd_set* fdSet);
 extern void fdSet(int fd, fd_set* fdset);
 extern int fdIsSet(int fd, fd_set* fdset);
 
-#endif /* SwiftIOSupport_h */
+//#endif /* SwiftIOSupport_h */

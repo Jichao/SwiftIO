@@ -7,8 +7,9 @@
 //
 
 import Darwin
-
+import Foundation
 import SwiftUtilities
+import SwiftIOSupport
 
 public  class Socket {
 
@@ -27,7 +28,6 @@ public  class Socket {
     }
 
     func close() throws {
-
         let result = Darwin.close(descriptor)
         descriptor = -1
         if result != 0 {
@@ -50,7 +50,7 @@ extension Socket {
     }
 
     public func setNonBlocking(_ nonBlocking: Bool) throws {
-        let result = SwiftIO.setNonblocking(descriptor, nonBlocking)
+        let result = SwiftIOSupport.setNonblocking(descriptor, nonBlocking)
         if result != 0 {
             throw Errno(rawValue: result) ?? Error.unknown
         }

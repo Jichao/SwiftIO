@@ -7,6 +7,7 @@
 //
 
 import Darwin
+import Foundation
 
 internal extension timeval {
     init(time: TimeInterval) {
