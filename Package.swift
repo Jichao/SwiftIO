@@ -10,7 +10,9 @@ let package = Package(
             targets: ["SwiftIO","SwiftIOSupport"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Esri/SwiftUtilities.git", .branch("develop"))
+        .package(url: "https://github.com/Esri/SwiftUtilities.git",
+                 .upToNextMajor(from: Version(0, 3, 0))
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
