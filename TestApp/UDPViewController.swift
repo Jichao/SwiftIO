@@ -15,9 +15,9 @@ import SwiftUtilities
 
 class UDPViewController: NSViewController {
 
-    dynamic var listenerAddressString: String? = "localhost:9999"
-    dynamic var echoAddress: String? = "localhost:9999"
-    dynamic var echoBody: String? = "Hello world"
+    @objc dynamic var listenerAddressString: String? = "0.0.0.0:14550"
+    @objc dynamic var echoAddress: String? = "localhost:9999"
+    @objc dynamic var echoBody: String? = "Hello world"
 
     var listener: UDPChannel? = nil
 
@@ -32,15 +32,15 @@ class UDPViewController: NSViewController {
 
             log?.debug("Received datagram from: \(datagram.from)")
 
-            datagram.data.createMap() {
-                data, buffer in
+            datagram.data.withUnsafeBuffer() {
+                (buffer: UnsafeBufferPointer <UInt8>) in
 
                 var string = ""
                 hexdump(buffer, zeroBased: true, stream: &string)
                 log?.debug("Content: \(string)")
             }
 
-            datagram.data
+
         }
 
         try listener?.resume()
@@ -50,20 +50,20 @@ class UDPViewController: NSViewController {
         listener = nil
     }
 
-    @IBAction func mapListenerAddressToIPV4(sender: NSButton) {
+    @IBAction func mapListenerAddressToIPV4(_ sender: NSButton) {
         do {
             guard let addressString = listenerAddressString else {
                 return
             }
             let address = try Address(address: addressString, mappedIPV4: true)
-            listenerAddressString = String(address)
+            listenerAddressString = String(describing: address)
         }
         catch let error {
             presentError(error as NSError)
         }
     }
 
-    @IBAction func startStopListener(sender: SwitchControl) {
+    @IBAction func startStopListener(_ sender: SwitchControl) {
         do {
             if sender.on {
                 log?.debug("Server start listening")
@@ -79,13 +79,13 @@ class UDPViewController: NSViewController {
         }
 }
 
-    @IBAction func mapEchoAddressToIPV4(sender: NSButton) {
+    @IBAction func mapEchoAddressToIPV4(_ sender: NSButton) {
         do {
             guard let addressString = echoAddress else {
                 return
             }
             let address = try Address(address: addressString, mappedIPV4: true)
-            echoAddress = String(address)
+            echoAddress = String(describing: address)
         }
         catch let error {
             presentError(error as NSError)
@@ -93,7 +93,7 @@ class UDPViewController: NSViewController {
     }
 
 
-    @IBAction func send(sender: NSButton) {
+    @IBAction func send(_ sender: NSButton) {
         do {
             guard let addressString = echoAddress else {
                 return
@@ -104,14 +104,14 @@ class UDPViewController: NSViewController {
                 return
             }
 
-            let data: DispatchData <Void> = try DispatchData(body)
+            let data = DispatchData(string: body)
 
             let callback = {
                 (result: Result <Void>) in
 
                 log?.debug(result)
-                if case .Failure(let error) = result {
-                    dispatch_async(dispatch_get_main_queue()) {
+                if case .failure(let error) = result {
+                    DispatchQueue.main.async() {
                         self.presentError(error as NSError)
                     }
                 }
@@ -119,10 +119,10 @@ class UDPViewController: NSViewController {
 
 
             if let listener = listener {
-                listener.send(data, address: address, callback: callback)
+                listener.send(data!, address: address, callback: callback)
             }
             else {
-                UDPChannel.send(data, address: address, queue: dispatch_get_main_queue(), writeHandler: callback)
+                UDPChannel.send(data!, address: address, queue: DispatchQueue.main, writeHandler: callback)
             }
         }
         catch let error {
@@ -132,7 +132,7 @@ class UDPViewController: NSViewController {
 
 
     }
-    
-    
+
+
 
 }

@@ -12,7 +12,7 @@ import SwiftIO
 
 class LogViewController: NSViewController {
 
-    dynamic var logText: String = ""
+    @objc dynamic var logText: String = ""
     @IBOutlet var logTextView: NSTextView!
 
     override func viewDidLoad() {
@@ -22,10 +22,10 @@ class LogViewController: NSViewController {
 
     }
 
-    func logHandler(subject: Any?) {
-        dispatch_async(dispatch_get_main_queue()) {
+    func logHandler(_ subject: Any?) {
+        DispatchQueue.main.async {
             if let subject = subject {
-                let message = String(subject)
+                let message = String(describing: subject)
                 self.logText += message + "\n"
             }
             else {

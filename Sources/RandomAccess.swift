@@ -32,20 +32,20 @@
 import SwiftUtilities
 
 public enum Whence: Int {
-    case Set = 0
-    case Current = 1
-    case End = 2
+    case set = 0
+    case current = 1
+    case end = 2
 }
 
 public protocol RandomAccess {
     func tell() throws -> Int
-    func seek(offset: Int, whence: Whence) throws -> Int
+    func seek(offset: Int, whence: Whence) throws
 }
 
 public protocol RandomAccessInput: RandomAccess {
-    func read(offset offset: Int, length: Int) throws -> DispatchData <Void>
+    func read(offset: Int, count: Int) throws -> DispatchData
 }
 
 public protocol RandomAccessOutput: RandomAccess {
-    func write(offset offset: Int, buffer: UnsafeBufferPointer <Void>) throws
+    func write(offset: Int, buffer: UnsafeBufferPointer <UInt8>) throws
 }

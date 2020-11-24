@@ -33,46 +33,33 @@ import SwiftUtilities
 public class MemoryStream: BinaryInputStream, BinaryOutputStream {
 
     public var endianness = Endianness.Native
-
-    internal var mutableData: NSMutableData = NSMutableData() // TODO: Use DispatchData
+    public var data: DispatchData
 
     var head: Int = 0
-    var remaining: Int {
-        return mutableData.length - head
-    }
 
     public init() {
+        self.data = DispatchData()
     }
 
-    public init(buffer: UnsafeBufferPointer <Void>) {
-        mutableData = NSMutableData(bytes: buffer.baseAddress, length: buffer.length)
+    public init(data: DispatchData) {
+        self.data = data
     }
 
-    public var buffer: UnsafeBufferPointer <Void> {
-        return mutableData.toUnsafeBufferPointer()
-    }
-
-    public func readData(length length: Int) throws -> DispatchData <Void> {
-        if length > remaining {
-            throw Error.Generic("Not enough space (requesting \(length) bytes, only \(remaining) bytes remaining")
-        }
-
-        let result = DispatchData <Void> (start: buffer.baseAddress.advancedBy(head), count: length)
-        head += length
+    public func readData(count: Int) throws -> DispatchData {
+        let result = data.subdata(in: head..<(head + count))
+        head += count
         return result
     }
 
-    public func readData() throws -> DispatchData <Void> {
-        return try readData(length: remaining)
+    public func readData() throws -> DispatchData {
+        let result = data.subdata(in: head..<(data.count - head))
+        head = data.count
+        return result
     }
 
-    public func write(buffer: UnsafeBufferPointer <Void>) throws {
-        mutableData.appendBytes(buffer.baseAddress, length: buffer.count)
-        head = mutableData.length
-    }
-
-    public var data: NSData {
-        return mutableData
+    public func write(buffer: UnsafeBufferPointer <UInt8>) throws {
+        let newData = DispatchData(bytes: buffer)
+        data = data + newData
     }
 
     public func rewind() {
@@ -85,15 +72,7 @@ public class MemoryStream: BinaryInputStream, BinaryOutputStream {
 extension MemoryStream: CustomStringConvertible {
 
     public var description: String {
-        return "MemoryStream(endianess: \(endianness), length: \(mutableData.length), head: \(head))"
+        return "MemoryStream(endianess: \(endianness), length: \(data.count))"
     }
 
-}
-
-// MARK:
-
-extension MemoryStream: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        return "MemoryStream(endianess: \(endianness), length: \(mutableData.length), head: \(head), bytes: \(mutableData))"
-    }
 }

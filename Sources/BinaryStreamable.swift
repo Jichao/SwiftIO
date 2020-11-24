@@ -6,4 +6,4 @@
 //  Copyright © 2015 schwa.io. All rights reserved.
 //
 
-public typealias BinaryStreamable = protocol <BinaryInputStreamable, BinaryOutputStreamable>
+public typealias BinaryStreamable = BinaryInputStreamable & BinaryOutputStreamable

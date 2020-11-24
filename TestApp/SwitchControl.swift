@@ -10,10 +10,6 @@ import Cocoa
 
 class SwitchControl: NSControl {
 
-    override class func initialize() {
-        exposeBinding("on")
-    }
-
     var on: Bool = false {
         didSet {
             if oldValue == on {
@@ -26,17 +22,17 @@ class SwitchControl: NSControl {
         }
     }
 
-    var offColor = NSColor.controlShadowColor()
-    var onColor = NSColor.keyboardFocusIndicatorColor()
+    var offColor = NSColor.controlShadowColor
+    var onColor = NSColor.keyboardFocusIndicatorColor
 
-    private var update: (Void -> Void)!
+    fileprivate var update: (() -> Void)!
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
 
-        NSLayoutConstraint.activateConstraints([
-            heightAnchor.constraintEqualToConstant(20),
-            widthAnchor.constraintEqualToConstant(60)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 20),
+            widthAnchor.constraint(equalToConstant: 60)
         ])
 
 
@@ -55,78 +51,78 @@ class SwitchControl: NSControl {
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(backgroundView)
 
-        NSLayoutConstraint.activateConstraints([
-            backgroundView.leadingAnchor.constraintEqualToAnchor(leadingAnchor),
-            backgroundView.trailingAnchor.constraintEqualToAnchor(trailingAnchor),
-            backgroundView.topAnchor.constraintEqualToAnchor(topAnchor),
-            backgroundView.bottomAnchor.constraintEqualToAnchor(bottomAnchor),
+        NSLayoutConstraint.activate([
+            backgroundView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            backgroundView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            backgroundView.topAnchor.constraint(equalTo: topAnchor),
+            backgroundView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
         // Thumb View
 
         let thumbView = LayerView()
-        thumbView.backgroundColor = .whiteColor()
+        thumbView.backgroundColor = .white
         thumbView.borderColor = offColor
         thumbView.borderWidth = 1
         thumbView.cornerRadius = 2
         thumbView.translatesAutoresizingMaskIntoConstraints = false
         backgroundView.addSubview(thumbView)
 
-        var thumbConstraint = thumbView.leadingAnchor.constraintEqualToAnchor(backgroundView.leadingAnchor)
+        var thumbConstraint: NSLayoutConstraint! = thumbView.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor)
 
-        NSLayoutConstraint.activateConstraints([
+        NSLayoutConstraint.activate([
             thumbConstraint,
-            thumbView.widthAnchor.constraintEqualToAnchor(backgroundView.widthAnchor, multiplier: 0.5),
-            thumbView.topAnchor.constraintEqualToAnchor(backgroundView.topAnchor),
-            thumbView.bottomAnchor.constraintEqualToAnchor(backgroundView.bottomAnchor),
+            thumbView.widthAnchor.constraint(equalTo: backgroundView.widthAnchor, multiplier: 0.5),
+            thumbView.topAnchor.constraint(equalTo: backgroundView.topAnchor),
+            thumbView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor),
         ])
 
         // Leading Guide
 
         let leadingGuide = NSLayoutGuide()
         backgroundView.addLayoutGuide(leadingGuide)
-        NSLayoutConstraint.activateConstraints([
-            leadingGuide.widthAnchor.constraintEqualToAnchor(backgroundView.widthAnchor, multiplier: 0.5),
-            leadingGuide.trailingAnchor.constraintEqualToAnchor(thumbView.leadingAnchor),
-            leadingGuide.topAnchor.constraintEqualToAnchor(backgroundView.topAnchor),
-            leadingGuide.bottomAnchor.constraintEqualToAnchor(backgroundView.bottomAnchor),
+        NSLayoutConstraint.activate([
+            leadingGuide.widthAnchor.constraint(equalTo: backgroundView.widthAnchor, multiplier: 0.5),
+            leadingGuide.trailingAnchor.constraint(equalTo: thumbView.leadingAnchor),
+            leadingGuide.topAnchor.constraint(equalTo: backgroundView.topAnchor),
+            leadingGuide.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor),
         ])
 
         // Leading Label
 
         let leadingLabel = label("ON")
-        leadingLabel.textColor = .whiteColor()
-        leadingLabel.font = NSFont.systemFontOfSize(11)
+        leadingLabel.textColor = .white
+        leadingLabel.font = NSFont.systemFont(ofSize: 11)
         leadingLabel.translatesAutoresizingMaskIntoConstraints = false
         backgroundView.addSubview(leadingLabel)
 
-        NSLayoutConstraint.activateConstraints([
-            leadingLabel.centerXAnchor.constraintEqualToAnchor(leadingGuide.centerXAnchor),
-            leadingLabel.centerYAnchor.constraintEqualToAnchor(leadingGuide.centerYAnchor),
+        NSLayoutConstraint.activate([
+            leadingLabel.centerXAnchor.constraint(equalTo: leadingGuide.centerXAnchor),
+            leadingLabel.centerYAnchor.constraint(equalTo: leadingGuide.centerYAnchor),
         ])
 
         // Trailing Guide
 
         let trailingGuide = NSLayoutGuide()
         backgroundView.addLayoutGuide(trailingGuide)
-        NSLayoutConstraint.activateConstraints([
-            trailingGuide.leadingAnchor.constraintEqualToAnchor(thumbView.trailingAnchor),
-            trailingGuide.widthAnchor.constraintEqualToAnchor(backgroundView.widthAnchor, multiplier: 0.5),
-            trailingGuide.topAnchor.constraintEqualToAnchor(backgroundView.topAnchor),
-            trailingGuide.bottomAnchor.constraintEqualToAnchor(backgroundView.bottomAnchor),
+        NSLayoutConstraint.activate([
+            trailingGuide.leadingAnchor.constraint(equalTo: thumbView.trailingAnchor),
+            trailingGuide.widthAnchor.constraint(equalTo: backgroundView.widthAnchor, multiplier: 0.5),
+            trailingGuide.topAnchor.constraint(equalTo: backgroundView.topAnchor),
+            trailingGuide.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor),
         ])
 
         // Trailing Label
 
         let trailingLabel = label("OFF")
-        trailingLabel.textColor = .whiteColor()
-        trailingLabel.font = NSFont.systemFontOfSize(11)
+        trailingLabel.textColor = .white
+        trailingLabel.font = NSFont.systemFont(ofSize: 11)
         trailingLabel.translatesAutoresizingMaskIntoConstraints = false
         backgroundView.addSubview(trailingLabel)
 
-        NSLayoutConstraint.activateConstraints([
-            trailingLabel.centerXAnchor.constraintEqualToAnchor(trailingGuide.centerXAnchor),
-            trailingLabel.centerYAnchor.constraintEqualToAnchor(trailingGuide.centerYAnchor),
+        NSLayoutConstraint.activate([
+            trailingLabel.centerXAnchor.constraint(equalTo: trailingGuide.centerXAnchor),
+            trailingLabel.centerYAnchor.constraint(equalTo: trailingGuide.centerYAnchor),
         ])
 
         // Update Closure
@@ -136,20 +132,20 @@ class SwitchControl: NSControl {
             backgroundView.backgroundColor = color
             thumbView.borderColor = color
 
-            thumbConstraint.active = false
+            thumbConstraint.isActive = false
             thumbConstraint = nil
 
             if self.on == false {
-                thumbConstraint = thumbView.leadingAnchor.constraintEqualToAnchor(backgroundView.leadingAnchor)
+                thumbConstraint = thumbView.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor)
             }
             else {
-                thumbConstraint = thumbView.leadingAnchor.constraintEqualToAnchor(backgroundView.centerXAnchor)
+                thumbConstraint = thumbView.leadingAnchor.constraint(equalTo: backgroundView.centerXAnchor)
             }
-            thumbConstraint.active = true
+            thumbConstraint.isActive = true
         }
     }
 
-    func update(animated animated: Bool) {
+    func update(animated: Bool) {
 
         if animated == false {
             update()
@@ -167,7 +163,7 @@ class SwitchControl: NSControl {
     }
 
 
-    func click(gestureRecognizer: NSClickGestureRecognizer) {
+    @objc func click(_ gestureRecognizer: NSClickGestureRecognizer) {
         on = !on
     }
 

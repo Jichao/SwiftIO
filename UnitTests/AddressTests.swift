@@ -44,9 +44,9 @@ class AddressTests: XCTestCase {
 
         let address = try! Address(address: "127.0.0.1", port: 1234)
         XCTAssertEqual(address.address, "127.0.0.1")
-        XCTAssertEqual(String(address), "127.0.0.1:1234")
+        XCTAssertEqual(String(describing: address), "127.0.0.1:1234")
         XCTAssertEqual(address.port, 1234)
-        XCTAssertEqual(address.family, ProtocolFamily.INET)
+        XCTAssertEqual(address.family, ProtocolFamily.inet)
 
         let addr = address.to_in_addr()!
         XCTAssertEqual(addr.s_addr, UInt32(0x7F000001).networkEndian)
@@ -63,21 +63,21 @@ class AddressTests: XCTestCase {
     }
 
     func testStringBasedAddress() {
-        XCTAssertEqual(String(try! Address(address: "127.0.0.1")), "127.0.0.1")
-        XCTAssertEqual(String(try! Address(address: "127.0.0.1:80")), "127.0.0.1:80")
-        XCTAssertEqual(String(try! Address(address: "[::]")), "[::]")
-        XCTAssertEqual(String(try! Address(address: "[::]:80")), "[::]:80")
-        XCTAssertEqual(String(try! Address(address: "[::1]")), "[::1]")
-        XCTAssertEqual(String(try! Address(address: "[::1]:80")), "[::1]:80")
-        XCTAssertEqual(String(try! Address(address: "[2607:f8b0:4007:803:700::]")), "[2607:f8b0:4007:803:700::]")
-        XCTAssertEqual(String(try! Address(address: "[2607:f8b0:4007:803:700::]:80")), "[2607:f8b0:4007:803:700::]:80")
+        XCTAssertEqual(String(describing: try! Address(address: "127.0.0.1")), "127.0.0.1")
+        XCTAssertEqual(String(describing: try! Address(address: "127.0.0.1:80")), "127.0.0.1:80")
+        XCTAssertEqual(String(describing: try! Address(address: "[::]")), "[::]")
+        XCTAssertEqual(String(describing: try! Address(address: "[::]:80")), "[::]:80")
+        XCTAssertEqual(String(describing: try! Address(address: "[::1]")), "[::1]")
+        XCTAssertEqual(String(describing: try! Address(address: "[::1]:80")), "[::1]:80")
+        XCTAssertEqual(String(describing: try! Address(address: "[2607:f8b0:4007:803:700::]")), "[2607:f8b0:4007:803:700::]")
+        XCTAssertEqual(String(describing: try! Address(address: "[2607:f8b0:4007:803:700::]:80")), "[2607:f8b0:4007:803:700::]:80")
 
 
         // TODO: Those do a name lookup
-        XCTAssertEqual(String(try! Address(address: "localhost")), "127.0.0.1")
-        XCTAssertEqual(String(try! Address(address: "localhost:80")), "127.0.0.1:80")
-        XCTAssertEqual(String(try! Address(address: "apple.com")), "17.142.160.59")
-        XCTAssertEqual(String(try! Address(address: "apple.com:80")), "17.142.160.59:80")
+        XCTAssertEqual(String(describing: try! Address(address: "localhost")), "127.0.0.1")
+        XCTAssertEqual(String(describing: try! Address(address: "localhost:80")), "127.0.0.1:80")
+        XCTAssertEqual(String(describing: try! Address(address: "apple.com")), "17.142.160.59")
+        XCTAssertEqual(String(describing: try! Address(address: "apple.com:80")), "17.142.160.59:80")
     }
 
 

@@ -34,190 +34,135 @@ import Dispatch
 import SwiftUtilities
 
 public class TCPChannel: Connectable {
-    public enum Error: ErrorType {
-        case IncorrectState(String)
-        case Unknown
+    public enum Error: Swift.Error {
+        case incorrectState(String)
+        case unknown
     }
 
     public let label: String?
     public let address: Address
-    public let state = ObservableProperty(ConnectionState.Disconnected)
+    public let state = ObservableProperty(ConnectionState.disconnected)
 
     // MARK: Callbacks
 
-    public var readCallback: (Result <DispatchData <Void>> -> Void)? {
+    public var readCallback: ((Result <DispatchData>) -> Void)? {
         willSet {
             preconditionConnected()
         }
     }
 
     /// Return true from shouldReconnect to initiate a reconnect. Does not make sense on a server socket.
-    public var shouldReconnect: (Void -> Bool)? {
+    public var shouldReconnect: (() -> Bool)? {
         willSet {
             preconditionConnected()
         }
     }
-    public var reconnectionDelay: NSTimeInterval = 5.0 {
+
+    public var reconnectionDelay: TimeInterval = 5.0 {
         willSet {
             preconditionConnected()
         }
     }
 
     // MARK: Private properties
-
-    private let queue: dispatch_queue_t
-    private let lock = NSRecursiveLock()
-    public private(set) var socket: Socket!
-    private var channel: dispatch_io_t!
-    private var disconnectCallback: (Result <Void> -> Void)?
+    fileprivate let queue: DispatchQueue
+    fileprivate let lock = NSRecursiveLock()
+    public fileprivate(set) var socket: Socket!
+    fileprivate var channel: DispatchIO!
+    fileprivate var disconnectCallback: ((Result <Void>) -> Void)?
 
     // MARK: Initialization
 
-    public init(label: String? = nil, address: Address, qos: qos_class_t = QOS_CLASS_DEFAULT) {
+    public init(label: String? = nil, address: Address, qos: DispatchQoS = .default) {
         assert(address.port != nil)
 
         self.label = label
         self.address = address
-        let queueAttribute = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, qos, 0)
-        self.queue = dispatch_queue_create("io.schwa.SwiftIO.TCP.queue", queueAttribute)
+        self.queue = DispatchQueue(label: "io.schwa.SwiftIO.TCP.queue", qos: qos)
 
     }
 
-    public func connect(callback: Result <Void> -> Void) {
+    public func connect(_ callback: @escaping (Result <Void>) -> Void) {
         connect(timeout: 30, callback: callback)
     }
-    
-    public func connect(timeout timeout: Int, callback: Result <Void> -> Void) {
-        dispatch_async(queue) {
+
+    public func connect(timeout: TimeInterval, callback: @escaping (Result <Void>) -> Void) {
+        queue.async {
             [weak self, address] in
 
             guard let strong_self = self else {
                 return
             }
 
-            if strong_self.state.value != .Disconnected {
-                callback(.Failure(Error.IncorrectState("Cannot connect channel in state \(strong_self.state.value)")))
+            if strong_self.state.value != .disconnected {
+                callback(.failure(Error.incorrectState("Cannot connect channel in state \(strong_self.state.value)")))
                 return
             }
 
             log?.debug("\(strong_self): Trying to connect.")
 
             do {
-                strong_self.state.value = .Connecting
+                strong_self.state.value = .connecting
                 let socket: Socket
 
                 socket = try Socket(domain: address.family.rawValue, type: SOCK_STREAM, protocol: IPPROTO_TCP)
 
                 strong_self.configureSocket?(socket)
                 try socket.connect(address, timeout: timeout)
-                
+
                 strong_self.socket = socket
-                strong_self.state.value = .Connected
+                strong_self.state.value = .connected
                 strong_self.createStream()
                 log?.debug("\(strong_self): Connection success.")
-                callback(.Success())
+                callback(.success(()))
             }
             catch let error {
-                strong_self.state.value = .Disconnected
+                strong_self.state.value = .disconnected
                 log?.debug("\(strong_self): Connection failure: \(error).")
-                callback(.Failure(error))
+                callback(.failure(error))
             }
         }
-        
+
     }
 
-    public func disconnect(callback: Result <Void> -> Void) {
-        retrier?.cancel()
-        retrier = nil
-        
-        dispatch_async(queue) {
+    public func disconnect(_ callback: @escaping (Result <Void>) -> Void) {
+        queue.async {
             [weak self] in
 
             guard let strong_self = self else {
                 return
             }
-            if Set([.Disconnected, .Disconnecting]).contains(strong_self.state.value) {
-                callback(.Failure(Error.IncorrectState("Cannot disconnect channel in state \(strong_self.state.value)")))
+            if Set([.disconnected, .disconnecting]).contains(strong_self.state.value) {
+                callback(.failure(Error.incorrectState("Cannot disconnect channel in state \(strong_self.state.value)")))
                 return
             }
 
             log?.debug("\(strong_self): Trying to disconnect.")
 
-            strong_self.state.value = .Disconnecting
+            strong_self.state.value = .disconnecting
             strong_self.disconnectCallback = callback
-            dispatch_io_close(strong_self.channel, DISPATCH_IO_STOP)
+            strong_self.channel.close(flags: .stop)
         }
-    }
-
-    var retrier: Retrier? = nil
-    var retryOptions = Retrier.Options()
-
-    public func connect(retryDelay retryDelay: NSTimeInterval?, retryMultiplier: Double? = nil, retryMaximumDelay: NSTimeInterval? = nil, retryMaximumAttempts: Int? = nil, callback: Result <Void> -> Void) {
-        var options = Retrier.Options()
-        if let retryDelay = retryDelay {
-            options.delay = retryDelay
-        }
-        if let retryMultiplier = retryMultiplier {
-            options.multiplier = retryMultiplier
-        }
-        if let retryMaximumDelay = retryMaximumDelay {
-            options.maximumDelay = retryMaximumDelay
-        }
-        if let retryMaximumAttempts = retryMaximumAttempts {
-            options.maximumAttempts = retryMaximumAttempts
-        }
-        connect(retryOptions: options, callback: callback)
-    }
-
-    private func connect(retryOptions retryOptions: Retrier.Options, callback: Result <Void> -> Void) {
-        self.retryOptions = retryOptions
-        let retrier = Retrier(options: retryOptions) {
-            [weak self] (retryCallback) in
-
-            guard let strong_self = self else {
-                return
-            }
-
-            strong_self.connect() {
-                (result: Result <Void>) -> Void in
-
-                if case .Failure(let error) = result {
-                    if retryCallback(.Failure(error)) == false {
-                        log?.debug("\(strong_self): Connection retry failed with \(error).")
-                        callback(result)
-                        strong_self.retrier = nil
-                    }
-                }
-                else {
-                    retryCallback(.Success())
-                    log?.debug("\(strong_self): Connection retry succeeded.")
-                    callback(result)
-                    strong_self.retrier = nil
-                }
-            }
-        }
-        self.retrier = retrier
-        retrier.resume()
     }
 
     // MARK: -
 
-    public func write(data: DispatchData <Void>, callback: Result <Void> -> Void) {
-        dispatch_io_write(channel, 0, data.data, queue) {
+    public func write(_ data: DispatchData, callback: @escaping (Result <Void>) -> Void) {
+        (channel).write(offset: 0, data: data, queue: queue) {
             (done, data, error) in
 
             guard error == 0 else {
-                callback(Result.Failure(Errno(rawValue: error)!))
+                callback(Result.failure(Errno(rawValue: error)!))
                 return
             }
-            callback(Result.Success())
+            callback(Result.success(()))
         }
     }
 
-    private func createStream() {
+    fileprivate func createStream() {
 
-        channel = dispatch_io_create(DISPATCH_IO_STREAM, socket.descriptor, queue) {
-            [weak self] (error) in
+        channel = DispatchIO(type: DispatchIO.StreamType.stream, fileDescriptor: socket.descriptor, queue: queue) {
+            [weak self] (error: Int32) in
 
             guard let strong_self = self else {
                 return
@@ -227,11 +172,11 @@ public class TCPChannel: Connectable {
             }
         }
         assert(channel != nil)
-        precondition(state.value == .Connected)
+        precondition(state.value == .connected)
 
-        dispatch_io_set_low_water(channel, 0)
+        channel.setLimit(lowWater: 0)
 
-        dispatch_io_read(channel, 0, -1 /* Int(truncatingBitPattern:SIZE_MAX) */, queue) {
+        channel.read(offset: 0, length: -1 /* Int(truncatingBitPattern:SIZE_MAX) */, queue: queue) {
             [weak self] (done, data, error) in
 
             guard let strong_self = self else {
@@ -244,32 +189,38 @@ public class TCPChannel: Connectable {
                     }
                     return
                 }
-                strong_self.readCallback?(Result.Failure(Errno(rawValue: error)!))
+                strong_self.readCallback?(Result.failure(Errno(rawValue: error)!))
                 return
             }
-            switch (done, dispatch_data_get_size(data!) > 0) {
+
+            guard let data = data else {
+                // TODO: Swift3 - a bit fatal!
+                fatalError("No error but no data")
+            }
+
+
+            switch (done, data.count > 0) {
                 case (false, _), (true, true):
-                    let dispatchData = DispatchData <Void> (data: data)
-                    strong_self.readCallback?(Result.Success(dispatchData))
+                    strong_self.readCallback?(Result.success(data))
                 case (true, false):
-                    dispatch_io_close(strong_self.channel, dispatch_io_close_flags_t())
+                    strong_self.channel.close(flags: [])
             }
         }
     }
 
-    private func handleDisconnect() throws {
-        let remoteDisconnect = (state.value != .Disconnecting)
+    fileprivate func handleDisconnect() throws {
+        let remoteDisconnect = (state.value != .disconnecting)
 
         try socket.close()
 
-        state.value = .Disconnected
+        state.value = .disconnected
 
-        if let shouldReconnect = shouldReconnect where remoteDisconnect == true {
+        if let shouldReconnect = shouldReconnect , remoteDisconnect == true {
             let reconnectFlag = shouldReconnect()
             if reconnectFlag == true {
-                let time = dispatch_time(DISPATCH_TIME_NOW, Int64(reconnectionDelay * 1000000000))
-                dispatch_after(time, queue) {
-                    [weak self] (result) in
+                let time = DispatchTime.now() + Double(Int64(reconnectionDelay * 1000000000)) / Double(NSEC_PER_SEC)
+                queue.asyncAfter(deadline: time) {
+                    [weak self] in
 
                     guard let strong_self = self else {
                         return
@@ -281,32 +232,32 @@ public class TCPChannel: Connectable {
             }
         }
 
-        disconnectCallback?(Result.Success())
+        disconnectCallback?(Result.success(()))
         disconnectCallback = nil
     }
 
-    private func reconnect() {
-        connect(retryOptions: retryOptions) {
+    fileprivate func reconnect() {
+        connect() {
             [weak self] (result) in
 
             guard let strong_self = self else {
                 return
             }
 
-            if case .Failure = result {
+            if case .failure = result {
                 strong_self.disconnectCallback?(result)
                 strong_self.disconnectCallback = nil
             }
         }
     }
 
-    private func preconditionConnected() {
-        precondition(state.value == .Disconnected, "Cannot change parameter while socket connected")
+    fileprivate func preconditionConnected() {
+        precondition(state.value == .disconnected, "Cannot change parameter while socket connected")
     }
 
     // MARK: -
 
-    public var configureSocket: (Socket -> Void)?
+    public var configureSocket: ((Socket) -> Void)?
 }
 
 // MARK: -
@@ -314,11 +265,11 @@ public class TCPChannel: Connectable {
 extension TCPChannel {
 
     /// Create a TCPChannel from a pre-existing socket. The setup closure is called after the channel is created but before the state has changed to `Connecting`. This gives consumers a chance to configure the channel before it is fully connected.
-    public convenience init(label: String? = nil, address: Address, socket: Socket, qos: qos_class_t = QOS_CLASS_DEFAULT, @noescape setup: (TCPChannel -> Void)) {
-        self.init(label: label, address: address)
+    public convenience init(label: String? = nil, address: Address, socket: Socket, qos: DispatchQoS = .default, setup: ((TCPChannel) -> Void)) {
+        self.init(label: label, address: address, qos: qos)
         self.socket = socket
         setup(self)
-        state.value = .Connected
+        state.value = .connected
         createStream()
     }
 
@@ -328,15 +279,15 @@ extension TCPChannel {
 
 extension TCPChannel: CustomStringConvertible {
     public var description: String {
-        return "TCPChannel(label: \(label), address: \(address)), state: \(state.value))"
+        return "TCPChannel(label: \(String(describing: label)), address: \(address)), state: \(state.value))"
     }
 }
 
 // MARK: -
 
 extension TCPChannel: Hashable {
-    public var hashValue: Int {
-        return ObjectIdentifier(self).hashValue
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self).hashValue)
     }
 }
 

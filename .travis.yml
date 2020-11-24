@@ -1,12 +1,14 @@
 language: objective-c
-osx_image: xcode7.3
-before_install:
-- brew update
-- brew install carthage || brew upgrade carthage
+osx_image: xcode8.1
 before_script:
 - carthage bootstrap --no-use-binaries
 script:
-- xctool -project SwiftIO.xcodeproj -scheme SwiftIO_iOS -sdk iphonesimulator build test
-- xctool -project SwiftIO.xcodeproj -scheme SwiftIO_OSX build test
-- xctool -project SwiftIO.xcodeproj -scheme TestApp build test
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'SwiftIO_iOS' -sdk iphoneos -configuration Debug build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'SwiftIO_iOS' -sdk iphoneos -configuration Release build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'SwiftIO_iOS' -sdk iphonesimulator -configuration Debug build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'SwiftIO_iOS' -sdk iphonesimulator -configuration Release build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'SwiftIO_OSX' -sdk macosx -configuration Debug build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'SwiftIO_OSX' -sdk macosx -configuration Release build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'TestApp' -sdk macosx -configuration Debug build
+- xcodebuild -project 'SwiftIO.xcodeproj' -scheme 'TestApp' -sdk macosx -configuration Release build
 

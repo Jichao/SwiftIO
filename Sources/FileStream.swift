@@ -30,7 +30,7 @@
 
 import SwiftUtilities
 
-public struct Mode: OptionSetType {
+public struct Mode: OptionSet {
     public let rawValue: Int
     public init(rawValue: Int) { self.rawValue = rawValue }
 
@@ -58,11 +58,11 @@ public class FileStream {
 
     public let endianness = Endianness.Native
 
-    public let url: NSURL
+    public let url: URL
     public internal(set) var isOpen: Bool = false
-    public internal(set) var fd: Int32!
+    public internal(set) var fd: Int32! // TODO: Replace with Socket() or make FileDescriptor type?
 
-    public init(url: NSURL) {
+    public init(url: URL) {
         self.url = url
     }
 
@@ -74,14 +74,10 @@ public class FileStream {
         }
     }
 
-    public func open(mode mode: Mode = Mode.read, append: Bool = false, create: Bool = false) throws {
+    public func open(mode: Mode = Mode.read, append: Bool = false, create: Bool = false) throws {
 
         guard isOpen == false else {
-            throw Error.Generic("File already open.")
-        }
-
-        guard let path = url.path else {
-            throw Error.Generic("Could not get path from url.")
+            throw Error.generic("File already open.")
         }
 
         var flags: Int32 = mode.oflags()
@@ -89,9 +85,9 @@ public class FileStream {
             flags |= (append ? O_APPEND : 0) | (create ? O_CREAT : 0)
         }
 
-        let fd = Darwin.open(path, flags, 0o644)
+        let fd = Darwin.open(url.path, flags, 0o644)
         guard fd > 0 else {
-            throw Errno(rawValue: errno) ?? Error.Unknown
+            throw Errno(rawValue: errno) ?? Error.unknown
         }
 
         isOpen = true
@@ -100,11 +96,14 @@ public class FileStream {
 
     public func close() throws {
         guard isOpen == true else {
-            throw Error.Generic("File already closed.")
+            throw Error.generic("File already closed.")
         }
 
-        Darwin.close(fd)
+        let result = Darwin.close(fd)
         fd = nil
+        if result != 0 {
+            throw Errno(rawValue: result) ?? Error.unknown
+        }
     }
 }
 
@@ -112,30 +111,33 @@ public class FileStream {
 
 extension FileStream: BinaryInputStream {
 
-    public func readData(length length: Int) throws -> DispatchData <Void> {
+    public func readData(count: Int) throws -> DispatchData {
         guard isOpen == true else {
-            throw Error.Generic("Stream not open")
+            throw Error.generic("Stream not open")
         }
 
-        if length <= 0 {
-            throw Error.Generic("Does not support nil length yet")
+        if count <= 0 {
+            throw Error.generic("Does not support nil length yet")
         }
 
-        guard let data = NSMutableData(length: length ?? 0) else {
-            throw Error.Generic("Could not allocate data of length")
-        }
+        var data = Data(count: count)
 
-        let result = Darwin.read(fd, data.mutableBytes, data.length)
+        let result = data.withUnsafeMutableBytes() {
+            (pointer: UnsafeMutablePointer <UInt8>) in
+
+            return Darwin.read(fd, pointer, count)
+        }
         if result < 0 {
-            throw Errno(rawValue: errno) ?? Error.Unknown
+            throw Errno(rawValue: errno) ?? Error.unknown
         }
 
-        data.length = result
+        data.count = result
 
-        return DispatchData <Void> (buffer: data.toUnsafeBufferPointer())
+        return DispatchData(data: data)
+
     }
 
-    public func readData() throws -> DispatchData <Void> {
+    public func readData() throws -> DispatchData {
         unimplementedFailure()
     }
 
@@ -145,15 +147,15 @@ extension FileStream: BinaryInputStream {
 
 extension FileStream: BinaryOutputStream {
 
-    public func write(buffer: UnsafeBufferPointer <Void>) throws {
+    public func write(buffer: UnsafeBufferPointer <UInt8>) throws {
 
         guard isOpen == true else {
-            throw Error.Generic("Stream not open")
+            throw Error.generic("Stream not open")
         }
 
         let result = Darwin.write(fd, buffer.baseAddress, buffer.count)
         if result < 0 {
-            throw Errno(rawValue: errno) ?? Error.Unknown
+            throw Errno(rawValue: errno) ?? Error.unknown
         }
     }
 }
@@ -162,25 +164,24 @@ extension FileStream: BinaryOutputStream {
 
 extension FileStream: RandomAccess {
     public func tell() throws -> Int {
-        return try seek(0, whence: .Current)
+        return Int(lseek(fd, 0, Int32(Whence.current.rawValue)))
     }
 
-    public func seek(offset: Int, whence: Whence = .Set) throws -> Int {
-        let result = lseek(fd, off_t(offset), Int32(whence.rawValue))
-        return Int(result)
+    public func seek(offset: Int, whence: Whence = .set) throws {
+        lseek(fd, off_t(offset), Int32(whence.rawValue))
     }
 }
 
 extension FileStream: RandomAccessInput {
-    public func read(offset offset: Int, length: Int) throws -> DispatchData <Void> {
-        try seek(offset)
-        return try readData(length: length)
+    public func read(offset: Int, count: Int) throws -> DispatchData {
+        try seek(offset: offset)
+        return try readData(count: count)
     }
 }
 
 extension FileStream: RandomAccessOutput {
-    public func write(offset offset: Int, buffer: UnsafeBufferPointer <Void>) throws {
-        try seek(offset)
-        try write(buffer)
+    public func write(offset: Int, buffer: UnsafeBufferPointer <UInt8>) throws {
+        try seek(offset: offset)
+        try write(buffer: buffer)
     }
 }

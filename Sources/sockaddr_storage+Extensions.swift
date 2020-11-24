@@ -22,7 +22,7 @@ public extension sockaddr_storage {
     */
     init(addr: in_addr, port: UInt16) {
         var sockaddr = sockaddr_in()
-        sockaddr.sin_len = __uint8_t(sizeof(sockaddr_in))
+        sockaddr.sin_len = __uint8_t(MemoryLayout<sockaddr_in>.size)
         sockaddr.sin_family = sa_family_t(AF_INET)
         sockaddr.sin_port = in_port_t(port.networkEndian)
         sockaddr.sin_addr = addr
@@ -38,7 +38,7 @@ public extension sockaddr_storage {
     */
     init(addr: in6_addr, port: UInt16) {
         var sockaddr = sockaddr_in6()
-        sockaddr.sin6_len = __uint8_t(sizeof(sockaddr_in6))
+        sockaddr.sin6_len = __uint8_t(MemoryLayout<sockaddr_in6>.size)
         sockaddr.sin6_family = sa_family_t(AF_INET6)
         sockaddr.sin6_port = in_port_t(port.networkEndian)
         sockaddr.sin6_addr = addr
@@ -65,7 +65,7 @@ public extension sockaddr_storage {
     }
 
     init(addr: UnsafePointer <sockaddr>, length: Int) {
-        precondition((addr.memory.sa_family == sa_family_t(AF_INET) && length == sizeof(sockaddr_in)) || (addr.memory.sa_family == sa_family_t(AF_INET6) && length == sizeof(sockaddr_in6)))
+        precondition((addr.pointee.sa_family == sa_family_t(AF_INET) && length == MemoryLayout<sockaddr_in>.size) || (addr.pointee.sa_family == sa_family_t(AF_INET6) && length == MemoryLayout<sockaddr_in6>.size))
         self = sockaddr_storage()
         unsafeCopy(destination: &self, source: addr, length: length)
     }
@@ -76,11 +76,11 @@ public extension sockaddr_in {
 
     /**
     Create a sockaddr_in from a sockaddr_storage
-    
+
     - Precondition: Family of the sock addr _must_ be AF_INET.
     */
     init(_ addr: sockaddr_storage) {
-        precondition(addr.ss_family == sa_family_t(AF_INET) && addr.ss_len >= __uint8_t(sizeof(sockaddr_in)))
+        precondition(addr.ss_family == sa_family_t(AF_INET) && addr.ss_len >= __uint8_t(MemoryLayout<sockaddr_in>.size))
         var copy = addr
         self = sockaddr_in()
         unsafeCopy(destination: &self, source: &copy)
@@ -92,11 +92,11 @@ public extension sockaddr_in6 {
 
     /**
     Create a sockaddr_in6 from a sockaddr_storage
-    
+
     - Precondition: Family of the sock addr _must_ be AF_INET6.
     */
     init(_ addr: sockaddr_storage) {
-        precondition(addr.ss_family == sa_family_t(AF_INET6) && addr.ss_len >= __uint8_t(sizeof(sockaddr_in6)))
+        precondition(addr.ss_family == sa_family_t(AF_INET6) && addr.ss_len >= __uint8_t(MemoryLayout<sockaddr_in6>.size))
         var copy = addr
         self = sockaddr_in6()
         unsafeCopy(destination: &self, source: &copy)
@@ -113,7 +113,7 @@ extension sockaddr_storage: CustomStringConvertible {
     - Warning: This code can fatalError if inet_ntop fails.
     */
     public var description: String {
-        var addrStr = Array <CChar> (count: Int(INET6_ADDRSTRLEN), repeatedValue: 0)
+        var addrStr = Array <CChar> (repeating: 0, count: Int(INET6_ADDRSTRLEN))
         do {
             return try addrStr.withUnsafeMutableBufferPointer() {
                 buffer in
@@ -135,10 +135,27 @@ extension sockaddr_storage: CustomStringConvertible {
             fatalError("\(error)")
         }
     }
-
 }
 
 
+extension sockaddr_storage {
 
+    func withSockaddr <R> (_ block: (UnsafePointer <sockaddr>) throws -> R) rethrows -> R {
+        var copy = self
+        return try withUnsafePointer(to: &copy) {
+            pointer in
+            return try pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                pointer in
+                return try block(pointer)
+            }
+        }
+    }
 
-
+    mutating func withMutableSockaddr <R> (_ block: (UnsafeMutablePointer <sockaddr>) throws -> R) rethrows -> R {
+        return try withUnsafeMutablePointer(to: &self) {
+            return try $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                return try block($0)
+            }
+        }
+    }
+}

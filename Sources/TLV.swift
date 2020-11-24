@@ -10,19 +10,19 @@
 
 import SwiftUtilities
 
-public typealias TLVType = protocol <BinaryStreamable, Equatable, EndianConvertable>
-public typealias TLVlength = protocol <BinaryStreamable, UnsignedIntegerType, EndianConvertable>
+public typealias TLVType = BinaryStreamable & Equatable & EndianConvertable
+public typealias TLVlength = BinaryStreamable & UnsignedInteger & EndianConvertable
 
 public struct TLVRecord <Type: TLVType, Length: TLVlength> {
     public let type: Type
-    public let data: DispatchData <Void>
+    public let data: DispatchData 
 
-    public init(type: Type, data: DispatchData <Void>) {
+    public init(type: Type, data: DispatchData ) {
         self.type = type
 
         // TODO
 //        guard data.length <= Length.max else {
-//            throw Error.Generic("Data too big")
+//            throw Error.generic("Data too big")
 //        }
 
         self.data = data
@@ -41,10 +41,10 @@ public func == <Type, Length> (lhs: TLVRecord <Type, Length>, rhs: TLVRecord <Ty
 // MARK: -
 
 extension TLVRecord: BinaryInputStreamable {
-    public static func readFrom(stream: BinaryInputStream) throws -> TLVRecord {
+    public static func readFrom(_ stream: BinaryInputStream) throws -> TLVRecord {
         let type: Type = try stream.read()
         let length: Length = try stream.read()
-        let data: DispatchData <Void> = try stream.readData(length: Int(length.toUIntMax()))
+        let data: DispatchData = try stream.readData(count: Int(length))
         let record = TLVRecord(type: type, data: data)
         return record
      }
@@ -54,16 +54,16 @@ extension TLVRecord: BinaryInputStreamable {
 
 extension TLVRecord: BinaryOutputStreamable {
     public func writeTo(stream: BinaryOutputStream) throws {
-        try stream.write(type)
-        let length = Length(UIntMax(data.length.toEndianness(stream.endianness)))
+        try stream.write(value: type)
+        let length = Length(UInt64(data.count.toEndianness(stream.endianness)))
 
         // TODO
 //        guard length <= Length.max else {
-//            throw Error.Generic("Data too big")
+//            throw Error.generic("Data too big")
 //        }
 
-        try stream.write(length)
-        try stream.write(data)
+        try stream.write(value: length)
+        try stream.write(data: data)
     }
 }
 
@@ -71,11 +71,11 @@ extension TLVRecord: BinaryOutputStreamable {
 // MARK: -
 
 public extension TLVRecord {
-    func toDispatchData(endianness: Endianness) throws -> DispatchData <Void> {
-        let length = Length(UIntMax(self.data.length))
-        let data = DispatchData <Void> ()
-            + DispatchData <Void> (value: type.toEndianness(endianness))
-            + DispatchData <Void> (value: length.toEndianness(endianness))
+    func toDispatchData(_ endianness: Endianness) throws -> DispatchData {
+        let length = Length(UInt64(self.data.count))
+        let data = DispatchData ()
+            + DispatchData (value: type.toEndianness(endianness))
+            + DispatchData (value: length.toEndianness(endianness))
             + self.data
         return data
     }
@@ -84,25 +84,25 @@ public extension TLVRecord {
 // MARK: -
 
 public extension TLVRecord {
-    static func read(data: DispatchData <Void>, endianness: Endianness) throws -> (TLVRecord?, DispatchData <Void>) {
+    static func read(_ data: DispatchData , endianness: Endianness) throws -> (TLVRecord?, DispatchData ) {
         // If we don't have enough data to read the TLV header exit
-        if data.length < (sizeof(Type) + sizeof(Length)) {
+        if data.count < (MemoryLayout<Type>.size + MemoryLayout<Length>.size) {
             return (nil, data)
         }
         return try data.split() {
-            (type: Type, remaining: DispatchData <Void>) in
+            (type: Type, remaining: DispatchData) in
             // Convert the type from endianness
             let type = type.fromEndianness(endianness)
             return try remaining.split() {
-                (length: Length, remaining: DispatchData <Void>) in
+                (length: Length, remaining: DispatchData) in
                 // Convert the length from endianness
-                let length = Int(length.fromEndianness(endianness).toIntMax())
+                let length = Int(length.fromEndianness(endianness))
                 // If we don't have enough remaining data to read the payload: exit.
-                if remaining.length < length {
+                if remaining.count < length {
                     return (nil, data)
                 }
                 // Get the payload.
-                return try remaining.split(length) {
+                return try remaining.split(to: length) {
                     (payload, remaining) in
                     // Produce a record.
                     let record = TLVRecord(type: type.fromEndianness(endianness), data: payload)
@@ -112,7 +112,7 @@ public extension TLVRecord {
         }
     }
 
-    static func readMultiple(data: DispatchData <Void>, endianness: Endianness) throws -> ([TLVRecord], DispatchData <Void>) {
+    static func readMultiple(_ data: DispatchData , endianness: Endianness) throws -> ([TLVRecord], DispatchData ) {
         var records: [TLVRecord] = []
         var data = data
         while true {
@@ -127,15 +127,3 @@ public extension TLVRecord {
     }
 }
 
-// TODO: Move to SwiftUtilities?
-private extension DispatchData {
-    func split<T, R>(closure: (T, DispatchData) throws -> R) throws -> R {
-        let (value, remaining): (T, DispatchData) = try split()
-        return try closure(value, remaining)
-    }
-
-    func split <R> (startIndex: Int, closure: (DispatchData, DispatchData) throws -> R) throws -> R {
-        let (left, right) = try split(startIndex)
-        return try closure(left, right)
-    }
-}

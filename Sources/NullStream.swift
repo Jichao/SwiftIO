@@ -31,16 +31,15 @@
 import SwiftUtilities
 
 public class NullStream: BinaryOutputStream {
-
     public let endianness = Endianness.Native
 
-    public private(set) var length: Int = 0
-    public private(set) var writeCount: Int = 0
+    public fileprivate(set) var length: Int = 0
+    public fileprivate(set) var writeCount: Int = 0
 
     public init() {
     }
 
-    public func write(buffer: UnsafeBufferPointer <Void>) throws {
+    public func write(buffer: UnsafeBufferPointer <UInt8>) throws {
         length += buffer.count
         writeCount += 1
     }

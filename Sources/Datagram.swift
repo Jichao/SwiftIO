@@ -34,9 +34,9 @@ import SwiftUtilities
 public struct Datagram {
     public let from: Address
     public let timestamp: Timestamp
-    public let data: DispatchData <Void>
+    public let data: DispatchData 
 
-    public init(from: Address, timestamp: Timestamp = Timestamp(), data: DispatchData <Void>) {
+    public init(from: Address, timestamp: Timestamp = Timestamp(), data: DispatchData ) {
         self.from = from
         self.timestamp = timestamp
         self.data = data
@@ -67,6 +67,6 @@ public func == (lhs: Datagram, rhs: Datagram) -> Bool {
 
 extension Datagram: CustomStringConvertible {
     public var description: String {
-        return "Datagram(from: \(from), timestamp: \(timestamp): data: \(data.length) bytes)"
+        return "Datagram(from: \(from), timestamp: \(timestamp): data: \(data.count) bytes)"
     }
 }

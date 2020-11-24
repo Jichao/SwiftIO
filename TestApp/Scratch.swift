@@ -11,13 +11,13 @@ import AppKit
 import SwiftIO
 import SwiftUtilities
 
-func label(string: String) -> NSTextField {
+func label(_ string: String) -> NSTextField {
     let label = NSTextField()
     label.stringValue = string
-    label.editable = false
+    label.isEditable = false
     label.drawsBackground = false
-    label.bordered = false
-    label.alignment = .Center
+    label.isBordered = false
+    label.alignment = .center
     return label
 }
 
@@ -44,7 +44,7 @@ class LayerView: NSView {
     var backgroundColor: NSColor? {
         get {
             if let backgroundColor = layer!.backgroundColor {
-                return NSColor(CGColor: backgroundColor)
+                return NSColor(cgColor: backgroundColor)
             }
             else {
                 return nil
@@ -52,7 +52,7 @@ class LayerView: NSView {
         }
         set {
             if let backgroundColor = newValue {
-                layer!.backgroundColor = backgroundColor.CGColor
+                layer!.backgroundColor = backgroundColor.cgColor
             }
             else {
                 layer!.backgroundColor = nil
@@ -63,7 +63,7 @@ class LayerView: NSView {
     var borderColor: NSColor? {
         get {
             if let borderColor = layer!.borderColor {
-                return NSColor(CGColor: borderColor)
+                return NSColor(cgColor: borderColor)
             }
             else {
                 return nil
@@ -71,7 +71,7 @@ class LayerView: NSView {
         }
         set {
             if let borderColor = newValue {
-                layer!.borderColor = borderColor.CGColor
+                layer!.borderColor = borderColor.cgColor
             }
             else {
                 layer!.borderColor = nil
@@ -101,31 +101,31 @@ class LayerView: NSView {
 // MARK: -
 
 class SafeSet <Element: AnyObject> {
-    private var set = NSMutableSet()
-    private var lock = NSLock()
-    func insert(value: Element) {
+    fileprivate var set = NSMutableSet()
+    fileprivate var lock = NSLock()
+    func insert(_ value: Element) {
         lock.with() {
-            set.addObject(value)
+            set.add(value)
         }
     }
-    func remove(value: Element) {
+    func remove(_ value: Element) {
         lock.with() {
-            set.removeObject(value)
+            set.remove(value)
         }
     }
 }
 
-extension SafeSet: SequenceType {
-    typealias Generator = ObjectEnumeratorGenerator <Element>
+extension SafeSet: Sequence {
+    typealias Iterator = ObjectEnumeratorGenerator <Element>
 
-    func generate() -> ObjectEnumeratorGenerator <Element> {
+    func makeIterator() -> ObjectEnumeratorGenerator <Element> {
         // Make a copy to allow mutation while enumerating.
         let copy = set.copy() as! NSSet
         return ObjectEnumeratorGenerator(objectEnumerator: copy.objectEnumerator())
     }
 }
 
-struct ObjectEnumeratorGenerator <Element: AnyObject>: GeneratorType {
+struct ObjectEnumeratorGenerator <Element: AnyObject>: IteratorProtocol {
     var objectEnumerator: NSEnumerator
 
     init(objectEnumerator: NSEnumerator) {

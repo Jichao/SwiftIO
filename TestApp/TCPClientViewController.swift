@@ -16,10 +16,10 @@ class TCPClientViewController: NSViewController {
     var clientChannel: TCPChannel?
     var count: Int = 0
 
-    dynamic var address: String? = "localhost:8888"
-    dynamic var reconnect: Bool = false
-    dynamic var state: String? = nil
-    dynamic var connected: Bool = false
+    @objc dynamic var address: String? = "localhost:8888"
+    @objc dynamic var reconnect: Bool = false
+    @objc dynamic var state: String? = nil
+    @objc dynamic var connected: Bool = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,7 +28,7 @@ class TCPClientViewController: NSViewController {
     func createClient() throws -> TCPChannel {
 
         guard let addressString = self.address else {
-            throw Error.Generic("Could not create address")
+            throw Error.generic("Could not create address")
         }
 
         let address = try Address(address: addressString)
@@ -47,41 +47,35 @@ class TCPClientViewController: NSViewController {
             socket.socketOptions.keepAliveInterval = 10
             socket.socketOptions.keepAliveCount = 10
         }
-        clientChannel.state.addObserver(self, queue: dispatch_get_main_queue()) {
+        clientChannel.state.addObserver(self, queue: DispatchQueue.main) {
             (old, new) in
 
             log?.debug("State changed: \(old) -> \(new)")
 
-            self.state = String(new)
+            self.state = String(describing: new)
 
             switch (old, new) {
-                case (_, .Disconnected):
+                case (_, .disconnected):
                     self.connected = false
-                case (_, .Connected):
+                case (_, .connected):
                     self.connected = true
                 default:
                     break
             }
         }
-
         clientChannel.readCallback = {
             (result) in
-            if case .Failure(let error) = result {
-                log?.debug("Client read callback: \(error)")
-                return
+
+            if case .success(let data) = result {
+                log?.debug("Client got data: \(String(data: data))")
             }
-            log?.debug("Result: \(result)")
         }
 
-        clientChannel.reconnectionDelay = 1 / 8
-        clientChannel.shouldReconnect = {
-            return self.reconnect
-        }
 
         return clientChannel
     }
 
-    @IBAction func connect(sender: AnyObject?) {
+    @IBAction func connect(_ sender: AnyObject?) {
 
         if clientChannel == nil {
             try! clientChannel = createClient()
@@ -94,10 +88,10 @@ class TCPClientViewController: NSViewController {
         clientChannel.connect() {
             (result) in
 
-            if case .Failure(let error) = result {
-                assert(clientChannel.state.value == .Disconnected)
+            if case .failure(let error) = result {
+                assert(clientChannel.state.value == .disconnected)
                 SwiftIO.log?.debug("Client connect callback: \(error)")
-                dispatch_async(dispatch_get_main_queue()) {
+                DispatchQueue.main.async() {
                     self.presentError(error as NSError)
                 }
                 return
@@ -105,7 +99,7 @@ class TCPClientViewController: NSViewController {
         }
     }
 
-    @IBAction func disconnect(sender: AnyObject?) {
+    @IBAction func disconnect(_ sender: AnyObject?) {
         guard let clientChannel = clientChannel else {
             fatalError()
         }
@@ -116,12 +110,12 @@ class TCPClientViewController: NSViewController {
         }
     }
 
-    @IBAction func ping(sender: AnyObject?) {
+    @IBAction func ping(_ sender: AnyObject?) {
         guard let clientChannel = clientChannel else {
             fatalError()
         }
 
-        clientChannel.write(try! DispatchData <Void> ("Hello \(count)\r\n")) {
+        clientChannel.write(DispatchData(string: "Hello \(count)\r\n")!) {
             result in
         }
 
